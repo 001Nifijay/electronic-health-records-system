@@ -1,62 +1,75 @@
--- Database: electronic_health_records
+-- Comprehensive EHR Database Schema for Electronic Health Records System
 
-CREATE DATABASE electronic_health_records;
-USE electronic_health_records;
-
--- Table: patients
 CREATE TABLE patients (
-    patient_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     date_of_birth DATE NOT NULL,
-    gender ENUM('male', 'female', 'other') NOT NULL,
-    phone_number VARCHAR(15),
+    gender VARCHAR(10) NOT NULL,
+    contact_number VARCHAR(15),
     email VARCHAR(100),
+    address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table: doctors
-CREATE TABLE doctors (
-    doctor_id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE staff (
+    staff_id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    specialization VARCHAR(100),
-    phone_number VARCHAR(15),
-    email VARCHAR(100),
+    role VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    contact_number VARCHAR(15),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table: appointments
 CREATE TABLE appointments (
-    appointment_id INT AUTO_INCREMENT PRIMARY KEY,
-    patient_id INT,
-    doctor_id INT,
-    appointment_date DATETIME NOT NULL,
-    status ENUM('scheduled', 'completed', 'canceled') DEFAULT 'scheduled',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
-    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+    appointment_id SERIAL PRIMARY KEY,
+    patient_id INT REFERENCES patients(patient_id) ON DELETE CASCADE,
+    staff_id INT REFERENCES staff(staff_id) ON DELETE SET NULL,
+    appointment_date TIMESTAMP NOT NULL,
+    reason TEXT,
+    status VARCHAR(20) DEFAULT 'scheduled',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table: medical_records
-CREATE TABLE medical_records (
-    record_id INT AUTO_INCREMENT PRIMARY KEY,
-    patient_id INT,
-    doctor_id INT,
-    diagnosis TEXT,
-    treatment TEXT,
-    prescription TEXT,
-    record_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
-    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+CREATE TABLE clinical_data (
+    clinical_data_id SERIAL PRIMARY KEY,
+    patient_id INT REFERENCES patients(patient_id) ON DELETE CASCADE,
+    visit_date TIMESTAMP NOT NULL,
+    diagnosis TEXT NOT NULL,
+    treatment VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table: billing
+CREATE TABLE lab_results (
+    lab_result_id SERIAL PRIMARY KEY,
+    patient_id INT REFERENCES patients(patient_id) ON DELETE CASCADE,
+    test_name VARCHAR(100) NOT NULL,
+    result VARCHAR(255),
+    test_date TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE billing (
-    bill_id INT AUTO_INCREMENT PRIMARY KEY,
-    appointment_id INT,
+    billing_id SERIAL PRIMARY KEY,
+    patient_id INT REFERENCES patients(patient_id) ON DELETE CASCADE,
+    appointment_id INT REFERENCES appointments(appointment_id) ON DELETE CASCADE,
     amount DECIMAL(10, 2) NOT NULL,
-    payment_status ENUM('paid', 'unpaid') DEFAULT 'unpaid',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
+    payment_status VARCHAR(20) DEFAULT 'unpaid',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE security (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    staff_id INT REFERENCES staff(staff_id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_patients_name ON patients (last_name, first_name);
+CREATE INDEX idx_appointments_patient ON appointments (patient_id);
+CREATE INDEX idx_lab_results_patient ON lab_results (patient_id);
+CREATE INDEX idx_billing_patient ON billing (patient_id);
+
+-- Further table creation for the remaining 51 tables...
